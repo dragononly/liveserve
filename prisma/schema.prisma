@@ -1,0 +1,56 @@
+datasource db {
+  provider = "mysql"
+  url      =env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// model Post {
+//   id        Int      @id @default(autoincrement())
+//   createdAt DateTime @default(now())
+//   updatedAt DateTime @updatedAt
+//   title     String   @db.VarChar(255)
+//   content   String?
+//   published Boolean  @default(false)
+//   author    User     @relation(fields: [authorId], references: [id])
+//   authorId  Int
+// }
+
+// model Profile {
+//   id     Int     @id @default(autoincrement())
+//   bio    String?
+//   user   User    @relation(fields: [userId], references: [id])
+//   userId Int     @unique
+// }
+
+model fs_emp_login {
+  id             Int     @id @default(autoincrement())
+  eid            Int
+  login_id       String?
+  login_password String?
+}
+
+model fs_employee {
+  id        Int     @id @default(autoincrement())
+  eid       Int
+  rank_id   Int
+  emp_style Int
+  user_name String?
+  depart_id Int
+}
+
+model fs_department {
+  id              Int     @id @default(autoincrement())
+  depart_id       Int
+  area_id         Int
+  depart_name     String?
+  depart_order_no String?
+}
+
+model fs_area {
+  id        Int     @id @default(autoincrement())
+  area_id   Int
+  area_name String?
+}
