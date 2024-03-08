@@ -524,9 +524,21 @@ export class LiveService {
 
   //构建用户treedata
   async treedata(): Promise<any> {
-
+    const errors = {
+      missingEid: 0,
+      missingUserName: 0,
+      missingRankId: 0,
+      missingDepartId: 0,
+      shortDepartOrderNo: 0,
+      missingLoginId: 0,
+    };
+    
+    //收集异常人群
+    let errPeople = []
+   
     //0clearn table
-   await skyuser.deleteMany()
+    await skyuser.deleteMany()
+  
    
 
     //1.遍历出所有人的名字
@@ -536,13 +548,17 @@ export class LiveService {
     let cabdepartment=await prisma.fs_department.findMany()
     let departmentMap= new Map()
     let departmentMapdepart_order_no= new Map()
+
     //Take depart_id as the index and program map
     for (const i2 of cabdepartment) {
+      if(!i2.depart_id){
+        console.log("OA数据库错误，严重修改数据");
+      }
       departmentMap.set(i2.depart_id,i2)
       departmentMapdepart_order_no.set(i2.depart_order_no,i2)
     }
 
-    //3.遍历fs_area 
+    //3.遍历fs_area 各个所
     let cabarea=await prisma.fs_area.findMany()
     let areaMap=new Map()
     //Take area_id as the index and program map
@@ -556,10 +572,15 @@ export class LiveService {
     let loginMap=new Map()
     //Take area_id as the index and program map
     for (const i of cablogin) {
+      if(!i.eid){
+        console.log("OA数据库错误，严重修改数据");
+      }
       loginMap.set(i.eid,i)
     }
 
     for (const iterator of cabuser) {
+     
+      
       //1.1然后得到了eid，姓名，rank_id,depart_id
       //这里先申明一个对象来存储信息,这个最终存储到mongodb
       const user = {
@@ -580,6 +601,29 @@ export class LiveService {
       //   "depart_id": 13020395,
       //   "rank_id": 12000104
       // }
+      // console.log(iterator);
+      if (!iterator.eid) {
+        errors.missingEid++;
+        errPeople.push(iterator)
+        continue;
+      }
+      if (!iterator.user_name) {
+        
+        errors.missingUserName++;
+        errPeople.push(iterator)
+        continue;
+      }
+      if (!iterator.rank_id) {
+        errors.missingRankId++;
+        errPeople.push(iterator)
+        continue;
+      }
+      if (!iterator.depart_id) {
+        errors.missingDepartId++;
+        errPeople.push(iterator)
+        continue;
+      }
+
       user.eid = iterator.eid.toString();//gain eid
       user.name = iterator.user_name;//gain name
       user.rank_id = iterator.rank_id.toString();//gain rank_id
@@ -587,7 +631,21 @@ export class LiveService {
       if (iterator.depart_id.toString().length < 8) {
         continue;
       }
-      user.departmentchild = departmentMap.get(iterator.depart_id).depart_name
+
+      user.departmentchild = departmentMap.get(iterator.depart_id)?.depart_name;
+
+      if (!user.departmentchild) {
+        console.log('获取部门信息失败');
+        errPeople.push(errPeople)
+        // 在这里进行相应的处理，例如记录错误、抛出异常等
+        continue; // 终止当前循环，处理下一个迭代
+      }
+     
+
+      if(!user.departmentchild){
+        console.log('获取部门列表失败');
+        continue
+      }
       // departmentMap about like this
       // {
       //   "id": 187,
@@ -598,12 +656,28 @@ export class LiveService {
       // }
 
       //2.1如果depart_order_no长度大于12，说明它是一个子部门
-      let newdepart_order_no = departmentMap.get(iterator.depart_id).depart_order_no;
+      let newdepart_order_no = departmentMap.get(iterator.depart_id)?.depart_order_no;
+      if(!newdepart_order_no){
+        console.log('获取部门级别定义失败');
+        errPeople.push(errPeople)
+        continue
+      }
+
       if (newdepart_order_no.length == 12) {
         newdepart_order_no = newdepart_order_no.substr(0, 10);
       }
       const onlydepart_name=departmentMapdepart_order_no.get(newdepart_order_no)
-      user.department = onlydepart_name.depart_name;
+      user.department = onlydepart_name?.depart_name;
+      
+      if (!user.department) {
+        errors.shortDepartOrderNo++
+        errPeople.push(iterator)
+        console.log(iterator);
+        
+        continue; // 终止当前循环，处理下一个迭代
+      }
+      
+
       // departmentMapdepart_order_no about like this
        //   {
       //     "id": 186,
@@ -615,7 +689,13 @@ export class LiveService {
 
   
       //2.2去用area_id获取area_name     
-      user.branch=areaMap.get(onlydepart_name.area_id).area_name
+      try {
+        user.branch=areaMap.get(onlydepart_name.area_id).area_name
+      } catch (error) {
+        errPeople.push(errPeople)
+        console.log("OA数据一致性严重异常");
+      }
+      
       // areaMap like this
       //   {
       //     "id": 2,
@@ -626,36 +706,37 @@ export class LiveService {
       //use eid exchange login and password
       //employee table have eid,but emp_k=login do not have eid
       try {
-        user.login_id=loginMap.get(iterator.eid).login_id
+        user.login_id=loginMap.get(iterator.eid)?.login_id 
       } catch (error) {
-        console.log('They do not have login_id'+iterator.eid);
+        errors.missingEid++
+        errPeople.push(iterator)
+        console.log(iterator);
+       // console.log('They do not have login_id'+iterator.eid);
         continue
       }
-     
-      user.login_password=loginMap.get(iterator.eid).login_password
+      
+      try {
+        user.login_password=loginMap.get(iterator.eid).login_password
+      } catch (error) {
+        errPeople.push(errPeople)
+        console.log("OA数据一致性严重异常");
+        
+      }
+      
 
 
 
+    
       
       const createdCat = new skyuser(user);
-      createdCat.save();
+      
+     await createdCat.save();
     }
+    console.log(errPeople);
+    console.log(errors); // 每次迭代后记录错误
     return 'ok';
   }
 
 
-  /**
-   * Type 'Prisma.SessionCreateInput' is automatically generated.
-   * Whenever you modify file 'prisma/schema.prisma' and then run command:
-   *   prisma generate
-   *   prisma migrate dev
-   * The types is automatically updated.
-   *
-   * About CRUD: https://www.prisma.io/docs/concepts/components/prisma-client/crud
-   */
-  // async create(session: Prisma.SessionCreateInput) {
-  //   return prisma.session.create({
-  //     data: session,
-  //   })
-  // }
+ 
 }
