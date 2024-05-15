@@ -3,11 +3,11 @@ import mongoose from "../../mongo";
 var Schema = mongoose.Schema;
 
 var UserSchema = new Schema({
-    user: { type: String, unique: true, dropDups: true },                    //用户账号
+    user: { type: String, unique: true, dropDups: true,index: true },                    //用户账号
     pwd: { type: String },                        //密码
     zone: { type: String },                             //cloud zone
     zoneMax: { type: String },                             //cloud zone
-    phone: { type: String, unique: true, sparse: true },
+    phone: { type: String, unique: true, sparse: true ,index: true},
     agio: { type: Object },
     store: { type: String },                        //密码
     regdate: { type: Date },                       //最近登录时间

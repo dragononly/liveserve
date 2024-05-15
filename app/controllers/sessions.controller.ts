@@ -43,7 +43,7 @@ export class SessionsController {
 
     const allUsers = await prisma.fs_emp_login.findFirst({
     })
-    console.dir(allUsers, { depth: null })
+    // console.dir(allUsers, { depth: null })
 
     return "22"
   }

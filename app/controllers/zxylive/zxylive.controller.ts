@@ -68,8 +68,7 @@ export class ZhixueyunLiveController {
         let val=eid+zhiboid+times
         let mysign=Md5.hashStr(val)
         mysign=Md5.hashStr(mysign)
-         console.log(val);
-        console.log(mysign);
+     
         
         if(mysign==sign){
             const secret = process.env.KEY;

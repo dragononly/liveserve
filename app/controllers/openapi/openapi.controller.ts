@@ -73,7 +73,7 @@ export class OpenapiController {
         
 
         function getFederationToken(){
-            console.log(111);
+           
         return new Promise((resolve, reject) => {
             var params = {
             Policy:JSON.stringify(str1), //"{\"Version\":\"2012-10-17\",\"Statement\":[{\"Sid\":\"Stmt1\",\"Effect\":\"Allow\",\"Action\":\"s3:ListAllMyBuckets\",\"Resource\":\"*\"}]}",
@@ -85,7 +85,7 @@ export class OpenapiController {
                 return reject(err);
             } 
             else{
-                console.log(data);
+              
                 return resolve(data.Credentials);
             }
             });

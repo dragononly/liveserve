@@ -4,20 +4,30 @@ import Environment from 'configs/environments'
 import createServer from 'configs/application'
 import * as bootstrap from 'configs/bootstrap'
 import serve from "koa-static2";
-// import { Server } from 'socket.io';
-import { zhibolist } from './configs/db/schema/live/zhibolist'
-const { Server2 } = require("socket.io");
-import schedule from 'node-schedule';
 const { createAdapter } = require("@socket.io/cluster-adapter");
 const { setupWorker } = require("@socket.io/sticky");
+import mongoose from 'mongoose';
+ 
 
-// global.Promise = require('bluebird');
-import ws from 'ws'
-import { LiveService } from 'app/services/live/live.service'
 // import koaJwt from 'koa-jwt'
 module.exports = (async (): Promise<Server> => {
   try {
+ 
+
+   
+ 
+        try {
+            await mongoose.connect(process.env.MONGODB);
+            console.log('数据库连接成功');
+            
+        } catch (error) {
+            console.log("数据库连接失败");
+            
+        }
+       
     
+    
+  
     const app = await createServer()
   //路由权限控制 除了path里的路径不需要验证token 其他都要
 
@@ -30,8 +40,11 @@ module.exports = (async (): Promise<Server> => {
       print.log(
         `server listening on ${process.env.PORT}, in ${Environment.identity} mode.`,
       )
-      bootstrap.after()
+    
     })
+
+    bootstrap.after()
+    // bootstrap.after2()
     const io = require('socket.io')(server,{cors:true},{
       allowRequest: (req: { headers: { origin: any } }, callback: (arg0: any, arg1: boolean) => void) => {
         const noOriginHeader = req.headers.origin === undefined;
@@ -60,11 +73,11 @@ module.exports = (async (): Promise<Server> => {
   onlinePeople++
   initialQueue--
   // io.emit('chat message', {msg:'people',people:cab2.onlinePeople});
-   io.emit('chat message', {msg:'people',people:onlinePeople*2});
+   io.emit('chat message', {msg:'people',people:onlinePeople});
       socket.on('chat message', (msg:any) => {
         // console.log(msg);
         // console.log(io.eio.clientsCount);
-        io.emit('chat message', {msg:msg,people:onlinePeople*2});
+        io.emit('chat message', {msg:msg,people:onlinePeople});
       });
       // console.log("initial transport", socket.conn.transport.name); // prints "polling"
 
@@ -76,7 +89,7 @@ module.exports = (async (): Promise<Server> => {
         // }
         onlinePeople--
         initialQueue++
-        io.emit('chat message', {msg:msg,people:onlinePeople*2});
+        io.emit('chat message', {msg:msg,people:onlinePeople});
           
       });
 
